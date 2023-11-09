@@ -1,70 +1,187 @@
-import { ScrollView, View, Text, TouchableOpacity, Dimensions } from 'react-native';
-import { Image } from 'react-native';
-import * as React from 'react';
+// Import necessary components and libraries
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Image,
+} from 'react-native';
+import { Camera } from 'expo-camera';
+import { shareAsync } from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 import * as SQLite from 'expo-sqlite';
-import { useNavigation } from '@react-navigation/native';
+import { FontAwesome5, MaterialIcons, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 
+// Define the CameraWindow component
+export default function CameraWindow() {
+  // Ref to the camera component
+  let cameraRef = useRef();
 
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+  // State variables for camera and media permissions, and captured photo
+  const [hasCameraPermission, setHasCameraPermission] = useState(null);
+  const [hasMediaPermission, setHasMediaPermission] = useState(null);
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
 
-// const Images = [
-//     // { uri: img1 },
-//     { uri: img2 },
-//     { uri: img3 },
-//     { uri: img4 },
-//     { uri: img4 },
-//     { uri: img4 },
-//     { uri: img4 },
-// ];
+  // Initialize SQLite database
+  const database = SQLite.openDatabase('myImagesDatabase.db');
 
-const Stack = createNativeStackNavigator();
+  useEffect(()=>{
+    createImageGalleryTable();
+  },[])
 
-let deviceHeight = Dimensions.get('window').height;
-let deviceWidth = Dimensions.get('window').width;
+  // Function to create 'imageGallery' table in the SQLite database
+  const createImageGalleryTable = () => {
+    database.transaction((transaction) => {
+      transaction.executeSql(
+        'CREATE TABLE IF NOT EXISTS imageGallery (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, data TEXT)'
+      );
+    },
+    // Error callback
+    (error) => {
+      console.log("Error creating table: ", error);
+    },
+    // Success callback
+    (transactionObj, success) => {
+      console.log("Table created successfully: ", success);
+    });
+  };
 
-const database = SQLite.openDatabase('myImageDatabase.db');
+  // Function to save captured image URI into the database
+  const saveImageToDatabase = () => {
+    const imageURI = capturedPhoto.uri;
+    database.transaction((transaction) => {
+      transaction.executeSql(
+        'INSERT INTO imageGallery (image, data) VALUES (?, ?)',
+        [imageURI, "Data"],
+        // Success callback
+        (_, result) => {
+          console.log("Image added to database successfully");
+        },
+        // Error callback
+        (_, error) => {
+          console.log("Error adding image to database: ", error);
+        }
+      );
+    });
+  };
 
- function Camera({ navigation }) {
+  // UseEffect to request camera and media permissions when component mounts
+  useEffect(() => {
+    (async () => {
+      // Request camera permissions
+      const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+      setHasCameraPermission(cameraStatus === 'granted');
+      
+      // Request media library permissions
+      const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+      setHasMediaPermission(mediaStatus === 'granted');
+    })();
+  }, []);
 
-    // CREATE A NEW STATE VARIABLE NAMED 'IMAGE_DATA' AND SET IT TO NULL INITIALLY
-    const [imageData, setImageData] = React.useState(null);
+  // Check camera permission status and render appropriate message or camera preview
+  if (hasCameraPermission === null) {
+    return <Text>Requesting Camera Permissions...</Text>;
+  } else if (hasCameraPermission === false) {
+    return <Text>Camera permissions have been denied. Please grant permissions to use the camera.</Text>;
+  }
 
-    // RETRIEVE DATA FROM SQLITE DATABASE WHEN COMPONENT MOUNTS
-    React.useEffect(() => {
-        // OPEN A TRANSACTION TO FETCH IMAGE DATA FROM THE DATABASE
-        database.transaction((tx) => {
-            // EXECUTE SQL QUERY TO SELECT DATA FROM 'IMAGEGALLERY' TABLE, ORDERED BY ID DESCENDING
-            tx.executeSql(
-                'SELECT * FROM imageGallery ORDER BY id DESC',
-                null,
-                // SUCCESS CALLBACK: SET 'IMAGE_DATA' STATE WITH THE FETCHED DATA
-                (txObj, results) => {
-                    setImageData(results.rows._array);
-                },
-                // ERROR CALLBACK: LOG ANY ERRORS ENCOUNTERED DURING FETCHING
-                (txObj, error) => {
-                    console.log('Error retrieving image data:', error);
-                }
-            );
-        });
-    }, []); // EMPTY DEPENDENCY ARRAY ENSURES THE EFFECT RUNS ONLY ONCE, AFTER THE INITIAL RENDER
+  // Function to capture a picture using the camera
+  let capturePicture = async () => {
+    let options = {
+      quality: 1,
+      base64: true,
+      exif: false,
+    };
 
+    let newPicture = await cameraRef.current.takePictureAsync(options);
+    setCapturedPhoto(newPicture);
+  };
+
+  // Check if a photo has been captured and display appropriate UI
+  if (capturedPhoto) {
+    // Function to share the captured image
+    let shareCapturedPicture = () => {
+      shareAsync(capturedPhoto.uri).then(() => {
+        setCapturedPhoto(null);
+      });
+    };
+
+    // Function to save the captured image to the device and database
+    let saveCapturedPicture = () => {
+      MediaLibrary.saveToLibraryAsync(capturedPhoto.uri).then(() => {
+        setCapturedPhoto(null);
+        saveImageToDatabase();
+      });
+    };
+
+    // Render UI for captured photo
     return (
-        <ScrollView>
-            <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', width: 350 }}>
-                {/* MAP THROUGH THE 'IMAGE_DATA' ARRAY AND RENDER IMAGES */}
-                {imageData && imageData.map((image, index) => {
-                    return (
-                        <TouchableOpacity key={index} onPress={() => navigation.navigate('ShowImage', { value: image })} style={{ width: '47%', margin: 5 }}  >
-                            {/* DISPLAY THE IMAGE USING THE URI FROM THE 'IMAGE_DATA' ARRAY */}
-                            <Image source={{ uri: image.image }}
-                                style={{ height: deviceHeight / 3, width: '100%', borderRadius: 2, borderWidth: 0.2, borderColor: 'rgba(0,0,0,0.4)' }} />
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-        </ScrollView>
+      <SafeAreaView style={styles.container}>
+        <Image style={styles.preview} source={{ uri: "data:image/jpg;base64," + capturedPhoto.base64 }} />
+        <View style={styles.buttonContainer}>
+          {/* Share button */}
+          <TouchableOpacity onPress={shareCapturedPicture}>
+            <Entypo name="share" size={45} color="black" />
+          </TouchableOpacity>
+          {/* Save button */}
+          {hasMediaPermission && (
+            <TouchableOpacity onPress={saveCapturedPicture}>
+              <MaterialIcons name="save-alt" size={45} color="black" />
+            </TouchableOpacity>
+          )}
+          {/* Retake button */}
+          <TouchableOpacity onPress={() => { setCapturedPhoto(null) }}>
+            <MaterialCommunityIcons name="camera-retake-outline" size={45} color="black" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
+  }
+
+  // Render camera preview and capture button
+  return (
+    <Camera style={styles.cameraContainer} ref={cameraRef}>
+      <View style={styles.captureButtonContainer}>
+
+        {/* Capture button */}
+        <TouchableOpacity onPress={capturePicture}>
+          <FontAwesome5 name="circle" size={60} color="black" />
+        </TouchableOpacity>
+      </View>
+    </Camera>
+  );
 }
-export default Camera
+
+// Styles for the component
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f25607',  //ORANGE RED COLOUR
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#fff', //white
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  preview: {
+    flex: 1,
+    width: '100%',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderRadius: 20,
+    backgroundColor: '#f25607',//ORANGE RED COLOUR
+    width: '100%',
+  },
+  captureButtonContainer: {
+    marginBottom: 20,
+  },
+});

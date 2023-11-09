@@ -1,12 +1,12 @@
 // Import necessary components and libraries
-import 'react-native-gesture-handler';
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { NavigationContainer } from '@react-navigation/native';
-import { Ionicons, Entypo } from '@expo/vector-icons';
-import CameraWindow from './Camera'; // Updated import name for CameraWindow component
-import ImageGallery from './ImageGal'; // Updated import name for ImageGallery component
+import "react-native-gesture-handler";
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+import { NavigationContainer } from "@react-navigation/native";
+import Camera from "../pages/Camera"; // Updated import name for CameraWindow component
+import ImageGalleria from "../pages/ImageGalleria"; // Updated import name for ImageGallery component
+import camera from "../assets/camera.png";
 
 const Drawer = createDrawerNavigator();
 
@@ -15,8 +15,8 @@ function MyDrawer() {
   return (
     <NavigationContainer>
       <Drawer.Navigator>
-        <Drawer.Screen name="Camera" component={CameraWindow} /> {/* Updated component name */}
-        <Drawer.Screen name="ImageGallery" component={ImageGallery} /> {/* Updated component name */}
+        <Drawer.Screen name="Camera" component={Camera} />{" "}
+        <Drawer.Screen name="ImageGallery" component={ImageGalleria} />{" "}
       </Drawer.Navigator>
     </NavigationContainer>
   );
@@ -27,22 +27,18 @@ export default function Main({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.topContainer}>
+
         <View style={styles.topInnerContainer}>
-          <Text style={styles.appTitle}>Image Gallery App</Text>
-          <Ionicons name="ios-camera" size={200} color="green" />
+          <Text style={styles.appTitle}>Image Galleria </Text>
+          <TouchableOpacity style={styles.actionButton}  onPress={() => navigation.navigate('Camera')} >
+          <Image source={camera} size={70} />
+        </TouchableOpacity>
         </View>
+
       </View>
-      <View style={styles.bottomContainer}>
-        <View style={styles.actionSignButton}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Camera')}
-            style={styles.actionButton}
-          >
-            <Text style={styles.buttonText}>Lets take  a Picture</Text>
-          </TouchableOpacity>
-        </View>
+      
       </View>
-    </View>
+   
   );
 }
 
@@ -50,44 +46,46 @@ export default function Main({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   topContainer: {
     flex: 1,
-    height: '60%',
+    height: "50%", //Define the height the container takes 
     top: 45,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
   topInnerContainer: {
     flex: 1,
-    top: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+    top: -50,
+    height: "50%",//Define the height the container takes 
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
   appTitle: {
-    fontSize: 20,
-    color: 'gray',
+    fontSize: 40,
+    color: "#CC5500", //Burnt Orange color
   },
-  bottomContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  actionButton: {
-    backgroundColor: 'green',
-    borderRadius: 20,
-    height: 45,
-    width: 300,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: 'white',
-  },
+  // bottomContainer: {
+  //   flex: 1,
+  //   height: "80%", //Define the height the container takes 
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   width: "100%",
+  // },
+  // actionButton: {
+  //   backgroundColor: "green",
+  //   borderRadius: 20,
+  //   height: 45,
+  //   width: 300,
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  // },
+  // buttonText: {
+  //   color: "white",
+  // },
 });

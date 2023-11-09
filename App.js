@@ -1,25 +1,27 @@
-import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import Test from './pages/Test';
+
+import {  StyleSheet } from 'react-native';
 
 import Main from './pages/Main';
 import Camera from './pages/Camera';
 import ShowImage from "./pages/ShowImage"
-import ImageGal from './pages/ImageGal';
+import ImageGalleria from './pages/ImageGalleria';
+
 
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
 
+
 const Drawer = createDrawerNavigator();
+
 
 export default function App() {
   return (
     <NavigationContainer style={styles.theme}>
       <Drawer.Navigator screenOptions={{}}>
         <Drawer.Screen name="Home" component={Main}/>
-        <Drawer.Screen name="ImageDisplay" component={Camera}/>
-        <Drawer.Screen name="Image" component={ImageGal}/>
-        <Drawer.Screen name="Camera" component={ShowImage}/>
+        <Drawer.Screen name="Camera" component={Camera}   options={{ headerShown: true }}/>
+        <Drawer.Screen name="Image Gallery" component={ImageGalleria}/>
+        <Drawer.Screen name="ShowImage" component={ShowImage}  options={{ headerShown: false }}/>
 
 
 
@@ -40,7 +42,7 @@ const styles = StyleSheet.create({
     dark: false,
     colors: {
       primary: 'rgb(255, 45, 199)',
-      background: '#fcf9f5',
+      background: '#CC5500',
       card: '#ffffff',
       text: '#000000',
       border: "#ccc7c8",
