@@ -16,11 +16,12 @@ import ImageGalleria from "./ImageGalleria";
 
 
 export default function ShowImage() {
-  const database = SQLite.openDatabase("myImagesDatabase.db");
+  const database = SQLite.openDatabase("myImageStore.db");
 
   const navigation = useNavigation();
   const route = useRoute();
   const { value } = route.params;
+  console.log("value",value)
 
   useEffect(() => {
     console.log(value);
@@ -30,12 +31,10 @@ export default function ShowImage() {
     console.log(id);
     database.transaction((tx) => {
       tx.executeSql(
-        "DELETE FROM imageGallery WHERE id = ? ",
+        "DELETE FROM imageObject WHERE id = ? ",
         [id],
         (txObj, res) => {
-          // let newData = [...imageData].filter(res => res.id !== id)
-          // setImageData(newData)
-          navigation.navigate("Image Gallery", ImageGalleria);
+          navigation.navigate("Image Galleria", ImageGalleria);
         },
         (txObj, error) => {
           console.log(error);

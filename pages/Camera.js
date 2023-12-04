@@ -1,93 +1,121 @@
-// Import necessary components and libraries
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  Image,
-} from 'react-native';
-import { Camera } from 'expo-camera';
-import { shareAsync } from 'expo-sharing';
-import * as MediaLibrary from 'expo-media-library';
+
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, Button, Alert } from 'react-native'
+import { Camera } from 'expo-camera'
+import { shareAsync } from 'expo-sharing'
+import *  as MediaLibrary from 'expo-media-library'
 import * as SQLite from 'expo-sqlite';
+import { openDatabase } from 'react-native-sqlite-storage';
+import { Ionicons } from '@expo/vector-icons'
+import { React, useEffect, useRef, useState } from 'react'
+
+
 import { FontAwesome5, MaterialIcons, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 
-// Define the CameraWindow component
-export default function CameraWindow() {
-  // Ref to the camera component
-  let cameraRef = useRef();
+export default function CameraWidow() {
 
-  // State variables for camera and media permissions, and captured photo
-  const [hasCameraPermission, setHasCameraPermission] = useState(null);
-  const [hasMediaPermission, setHasMediaPermission] = useState(null);
-  const [capturedPhoto, setCapturedPhoto] = useState(null);
+    let cameraRef = useRef();
 
-  // Initialize SQLite database
-  const database = SQLite.openDatabase('myImagesDatabase.db');
+    const [cameraPermission, setCameraPermission] = useState()
+    const [mediaPermission, setMediaPermission] = useState()
+    // const [photo, setPhoto] = useState()
+    const [capturedPhoto, setCapturedPhoto] = useState(null);
 
-  useEffect(()=>{
-    createImageGalleryTable();
-  },[])
 
-  // Function to create 'imageGallery' table in the SQLite database
-  const createImageGalleryTable = () => {
-    database.transaction((transaction) => {
-      transaction.executeSql(
-        'CREATE TABLE IF NOT EXISTS imageGallery (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, data TEXT)'
-      );
-    },
-    // Error callback
-    (error) => {
-      console.log("Error creating table: ", error);
-    },
-    // Success callback
-    (transactionObj, success) => {
-      console.log("Table created successfully: ", success);
-    });
-  };
+    
+    const database = SQLite.openDatabase('myImageStore.db');
 
-  // Function to save captured image URI into the database
-  const saveImageToDatabase = () => {
-    const imageURI = capturedPhoto.uri;
-    database.transaction((transaction) => {
-      transaction.executeSql(
-        'INSERT INTO imageGallery (image, data) VALUES (?, ?)',
-        [imageURI, "Data"],
-        // Success callback
-        (_, result) => {
-          console.log("Image added to database successfully");
+    // sqlite database to store images
+
+    const createTable = () =>{
+        database.transaction((tx) => {
+            tx.executeSql(
+              'CREATE TABLE IF NOT EXISTS imageObject (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, data TEXT)'
+              
+            );
+          },
+          (error) =>{
+            console.log("error creating table", error);
+            // Alert.alert('Success', 'Image was saved successfully')
         },
-        // Error callback
-        (_, error) => {
-          console.log("Error adding image to database: ", error);
-        }
-      );
-    });
-  };
+        
+        (a,b) =>{
+            console.log("Created ", b);
+            // Alert.alert('Success', 'Image was saved successfully')
+        });
+    }
+   
 
-  // UseEffect to request camera and media permissions when component mounts
-  useEffect(() => {
-    (async () => {
-      // Request camera permissions
-      const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
-      setHasCameraPermission(cameraStatus === 'granted');
-      
-      // Request media library permissions
-      const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
-      setHasMediaPermission(mediaStatus === 'granted');
-    })();
-  }, []);
+    // save image intyo database
 
-  // Check camera permission status and render appropriate message or camera preview
-  if (hasCameraPermission === null) {
-    return <Text>Requesting Camera Permissions...</Text>;
-  } else if (hasCameraPermission === false) {
-    return <Text>Camera permissions have been denied. Please grant permissions to use the camera.</Text>;
-  }
+    
+    const saveImageToDatabase  = () =>{
+        const imageURI = capturedPhoto.uri;
+        console.log(imageURI);
+        database.transaction((tx) => {
+            tx.executeSql(
+              'INSERT INTO imageObject (image, data ) values(?,?)',
+              [imageURI, "Data"]
+            ),
+            (txObj,error) =>{
+                console.log("Errror", error);
+               
+            },
+            (txObj,success) =>{
+                console.log("Added");
+                Alert.alert('Success', 'Image was saved successfully')
+            }
 
-  // Function to capture a picture using the camera
+
+          });
+    }
+
+
+    //camera permissions
+    useEffect(() => {
+        (async () => {
+
+            const hascameraPermission = await Camera.requestCameraPermissionsAsync()
+            const hasmediaPermission = await MediaLibrary.requestPermissionsAsync()
+            setCameraPermission(hascameraPermission.status === 'granted')
+            setMediaPermission(hasmediaPermission.status === 'granted')
+
+        })()
+    }, [])
+
+    //sqlite Table
+    useEffect(()=>{
+
+        createTable()
+
+        database.transaction((tx)=>{
+            tx.executeSql('SELECT * FROM imageObject',null,
+            (txObj,results)=>{
+                 console.log('res',results.rows._array);
+            },
+            (txObj,error)=>{
+                 console.log(error);
+            },
+            
+            )
+        })
+
+        // getImage()
+
+    },[])
+
+
+
+    if (cameraPermission === undefined) {
+        return <Text>Requesting Permissions... Loading... ('o' )</Text>
+
+    } else if (!cameraPermission) {
+        return <Text>Permissions have been denied. Please grant permissions in order to use camera.</Text>
+
+    }
+
+    //taking picture 
+
+    // Function to capture a picture using the camera
   let capturePicture = async () => {
     let options = {
       quality: 1,
@@ -97,6 +125,7 @@ export default function CameraWindow() {
 
     let newPicture = await cameraRef.current.takePictureAsync(options);
     setCapturedPhoto(newPicture);
+
   };
 
   // Check if a photo has been captured and display appropriate UI
@@ -116,33 +145,34 @@ export default function CameraWindow() {
       });
     };
 
-    // Render UI for captured photo
-    return (
-      <SafeAreaView style={styles.container}>
-        <Image style={styles.preview} source={{ uri: "data:image/jpg;base64," + capturedPhoto.base64 }} />
-        <View style={styles.buttonContainer}>
-          {/* Share button */}
-          <TouchableOpacity onPress={shareCapturedPicture}>
-            <Entypo name="share" size={45} color="black" />
-          </TouchableOpacity>
-          {/* Save button */}
-          {hasMediaPermission && (
-            <TouchableOpacity onPress={saveCapturedPicture}>
-              <MaterialIcons name="save-alt" size={45} color="black" />
+        return (
+          <SafeAreaView style={styles.container}>
+          <Image style={styles.preview} source={{ uri: "data:image/jpg;base64," + capturedPhoto.base64 }} />
+          <View style={styles.buttonContainer}>
+            {/* Share button */}
+            <TouchableOpacity onPress={shareCapturedPicture}>
+              <Entypo name="share" size={45} color="black" />
             </TouchableOpacity>
-          )}
-          {/* Retake button */}
-          <TouchableOpacity onPress={() => { setCapturedPhoto(null) }}>
-            <MaterialCommunityIcons name="camera-retake-outline" size={45} color="black" />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+            {/* Save button */}
+            {mediaPermission&& (
+              <TouchableOpacity onPress={saveCapturedPicture}>
+                <MaterialIcons name="save-alt" size={45} color="black" />
+              </TouchableOpacity>
+            )}
+            {/* Retake button */}
+            <TouchableOpacity onPress={() => { setCapturedPhoto(null) }}>
+              <MaterialCommunityIcons name="camera-retake-outline" size={45} color="black" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+        )
+    }
 
-  // Render camera preview and capture button
-  return (
-    <Camera style={styles.cameraContainer} ref={cameraRef}>
+
+  
+
+    return (
+      <Camera style={styles.cameraContainer} ref={cameraRef}>
       <View style={styles.captureButtonContainer}>
 
         {/* Capture button */}
@@ -151,7 +181,8 @@ export default function CameraWindow() {
         </TouchableOpacity>
       </View>
     </Camera>
-  );
+        
+    )
 }
 
 // Styles for the component

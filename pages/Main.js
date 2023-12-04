@@ -16,7 +16,7 @@ function MyDrawer() {
     <NavigationContainer>
       <Drawer.Navigator>
         <Drawer.Screen name="Camera" component={Camera} />{" "}
-        <Drawer.Screen name="ImageGallery" component={ImageGalleria} />{" "}
+        <Drawer.Screen name="ImageGalleria" component={ImageGalleria} />{" "}
       </Drawer.Navigator>
     </NavigationContainer>
   );
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     height: "50%",//Define the height the container takes 
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
+    width: "80%",
   },
   appTitle: {
     fontSize: 40,
